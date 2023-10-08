@@ -13,6 +13,14 @@ mongoose.connect(
 
 const routes = require("./routes");
 app.use(express.json());
+
+app.use((req, res, next) => {
+  req.user = {
+    _id: "6522e28868c73a44d78433d8", // paste the _id of the test user created in the previous step
+  };
+  next();
+});
+
 app.use(routes);
 
 app.listen(PORT, () => {
