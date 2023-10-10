@@ -1,17 +1,11 @@
-const mongoose = require("mongoose");
 const ClothingItem = require("../models/clothingItem");
 const { BAD_REQUEST, NOT_FOUND, DEFAULT_ERROR } = require("../utils/errors");
 
 const createItem = (req, res) => {
-  console.log(req);
-  console.log(req.body);
-  console.log(req.user._id);
+  const { name, weather, imageUrl } = req.body;
 
-  const { name, weather, image } = req.body;
-
-  ClothingItem.create({ name, weather, image, owner: req.user._id })
+  ClothingItem.create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => {
-      console.log(item);
       res.status(201).send({ data: item });
     })
     .catch((e) => {
@@ -20,19 +14,18 @@ const createItem = (req, res) => {
           message: `Error ${e.name} with the message ${e.message} has occurred while executing the code`,
         });
       } else {
-        res.status(DEFAULT_ERROR).send({ message: "Error with createItem", e });
+        res.status(DEFAULT_ERROR).send({ message: "Error with createItem" });
       }
     });
 };
 
 const getItems = (req, res) => {
   ClothingItem.find({})
-    .orFail()
     .then((item) => {
       res.status(200).send({ data: item });
     })
-    .catch((e) => {
-      res.status(500).send({ message: "Error with getItems", e });
+    .catch(() => {
+      res.status(DEFAULT_ERROR).send({ message: "Error with getItems" });
     });
 };
 
@@ -41,11 +34,17 @@ const deleteItems = (req, res) => {
 
   ClothingItem.findByIdAndDelete(itemId)
     .orFail()
-    .then((item) => {
-      res.status(204).send({});
+    .then(() => {
+      res.status(200).send({});
     })
     .catch((e) => {
-      res.status(DEFAULT_ERROR).send({ message: "Error with deleteItems", e });
+      if (e.name === "DocumentNotFoundError") {
+        res.status(NOT_FOUND).send({ message: "Item could not be found" });
+      } else if (e.name === "CastError") {
+        res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
+      } else {
+        res.status(DEFAULT_ERROR).send({ message: "Error with deleteItems" });
+      }
     });
 };
 
@@ -60,10 +59,12 @@ const likeItems = (req, res) => {
       res.status(200).send({ data: item });
     })
     .catch((e) => {
-      if (e.name === "CastError") {
+      if (e.name === "DocumentNotFoundError") {
         res.status(NOT_FOUND).send({ message: "Item could not be found" });
+      } else if (e.name === "CastError") {
+        res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
       } else {
-        res.status(DEFAULT_ERROR).send({ message: "Error with likeItems", e });
+        res.status(DEFAULT_ERROR).send({ message: "Error with likeItems" });
       }
     });
 };
@@ -79,12 +80,12 @@ const dislikeItems = (req, res) => {
       res.status(200).send({ data: item });
     })
     .catch((e) => {
-      if (e.name === "CastError") {
+      if (e.name === "DocumentNotFoundError") {
         res.status(NOT_FOUND).send({ message: "Item could not be found" });
+      } else if (e.name === "CastError") {
+        res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
       } else {
-        res
-          .status(DEFAULT_ERROR)
-          .send({ message: "Error with dislikeItems", e });
+        res.status(DEFAULT_ERROR).send({ message: "Error with dislikeItems" });
       }
     });
 };
