@@ -4,6 +4,6 @@ const { authorize } = require("../middleware/auth");
 
 router.get("/me", authorize, getCurrentUser);
 
-router.post("/me", authorize, updateProfile);
+router.patch("/me", authorize, updateProfile);
 
 module.exports = router;
