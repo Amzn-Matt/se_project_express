@@ -3,8 +3,9 @@ const { BAD_REQUEST, NOT_FOUND, DEFAULT_ERROR } = require("../utils/errors");
 
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
+  const owner = req.user._id;
 
-  ClothingItem.create({ name, weather, imageUrl, owner: req.user._id })
+  ClothingItem.create({ name, weather, imageUrl, owner })
     .then((item) => {
       res.status(201).send({ data: item });
     })
@@ -31,20 +32,30 @@ const getItems = (req, res) => {
 
 const deleteItems = (req, res) => {
   const { itemId } = req.params;
+  const userId = req.user._id;
 
-  ClothingItem.findByIdAndDelete(itemId)
+  ClothingItem.findById(itemId)
     .orFail()
-    .then(() => {
-      res.status(200).send({});
-    })
-    .catch((e) => {
-      if (e.name === "DocumentNotFoundError") {
-        res.status(NOT_FOUND).send({ message: "Item could not be found" });
-      } else if (e.name === "CastError") {
-        res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
-      } else {
-        res.status(DEFAULT_ERROR).send({ message: "Error with deleteItems" });
+    .then((item) => {
+      if (userId !== item.owner.toString()) {
+        res.status(403).send({ message: "Aurhorization Required" });
       }
+      ClothingItem.findByIdAndDelete(itemId)
+        .orFail()
+        .then(() => {
+          res.status(200).send({});
+        })
+        .catch((e) => {
+          if (e.name === "DocumentNotFoundError") {
+            res.status(NOT_FOUND).send({ message: "Item could not be found" });
+          } else if (e.name === "CastError") {
+            res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
+          } else {
+            res
+              .status(DEFAULT_ERROR)
+              .send({ message: "Error with deleteItems" });
+          }
+        });
     });
 };
 
