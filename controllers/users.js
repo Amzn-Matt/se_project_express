@@ -26,7 +26,7 @@ const createUser = (req, res) => {
         });
       })
       .catch((e) => {
-        console.error(err);
+        console.error(e);
         if (e.name === "DocumentNotFoundError") {
           res.status(NOT_FOUND).send({ message: "User not found" });
         } else if (e.name === "CastError") {
