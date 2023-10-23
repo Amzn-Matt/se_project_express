@@ -17,7 +17,7 @@ const createUser = (req, res) => {
     return res.status(BAD_REQUEST).send({ message: "Please include an email" });
   }
 
-  User.findOne({ email })
+  return User.findOne({ email })
     .then((user) => {
       if (user) {
         return res
@@ -27,10 +27,8 @@ const createUser = (req, res) => {
       return bcrypt
         .hash(password, 10)
         .then((hash) => {
-          User.create({ name, avatar, email, password: hash }).then(
-            (newUser) => {
-              return res.status(201).send({ data: newUser });
-            },
+          User.create({ name, avatar, email, password: hash }).then((newUser) =>
+            res.status(201).send({ data: newUser }),
           );
         })
         .catch((e) => {
