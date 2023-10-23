@@ -1,5 +1,10 @@
 const ClothingItem = require("../models/clothingItem");
-const { BAD_REQUEST, NOT_FOUND, DEFAULT_ERROR } = require("../utils/errors");
+const {
+  BAD_REQUEST,
+  NOT_FOUND,
+  DEFAULT_ERROR,
+  FORBIDDEN,
+} = require("../utils/errors");
 
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
@@ -32,30 +37,31 @@ const getItems = (req, res) => {
 
 const deleteItems = (req, res) => {
   const { itemId } = req.params;
-  const userId = req.user._id;
 
   ClothingItem.findById(itemId)
-    .orFail()
+    .orFail(() => {
+      const error = new Error("Document not found");
+      error.statusCode = NOT_FOUND;
+      throw error;
+    })
     .then((item) => {
-      if (userId !== item.owner.toString()) {
-        res.status(403).send({ message: "Aurhorization Required" });
+      if (!item.owner.equals(req.user._id)) {
+        return res
+          .status(FORBIDDEN)
+          .send({ message: "You are not authorized to delete this item" });
       }
-      ClothingItem.findByIdAndDelete(itemId)
-        .orFail()
-        .then(() => {
-          res.status(200).send({});
-        })
-        .catch((e) => {
-          if (e.name === "DocumentNotFoundError") {
-            res.status(NOT_FOUND).send({ message: "Item could not be found" });
-          } else if (e.name === "CastError") {
-            res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
-          } else {
-            res
-              .status(DEFAULT_ERROR)
-              .send({ message: "Error with deleteItems" });
-          }
-        });
+
+      return item.deleteOne().then(() => res.send({ message: "Item deleted" }));
+    })
+    .catch((e) => {
+      console.error(e);
+      if (e.name === "DocumentNotFound") {
+        res.status(NOT_FOUND).send({ message: "Item not found" });
+      } else if (e.name === "CastError") {
+        res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
+      } else {
+        res.status(DEFAULT_ERROR).send({ message: "Error with deleteItems" });
+      }
     });
 };
 
