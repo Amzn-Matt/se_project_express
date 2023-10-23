@@ -1,41 +1,55 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-const { BAD_REQUEST, NOT_FOUND, DEFAULT_ERROR } = require("../utils/errors");
+const {
+  BAD_REQUEST,
+  NOT_FOUND,
+  DEFAULT_ERROR,
+  UNAUTHORIZED,
+  CONFLICT,
+} = require("../utils/errors");
 const { JWT_SECRET } = require("../utils/config");
-const user = require("../models/user");
 
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
   if (!email) {
-    res.status(BAD_REQUEST).send({ message: "Please include an email" });
+    return res.status(BAD_REQUEST).send({ message: "Please include an email" });
   }
 
-  User.findOne({ email }).then((user) => {
-    if (user) {
-      res
-        .status(403)
-        .send({ message: "A user with that email already exists" });
-    }
-    return bcrypt
-      .hash(password, 10)
-      .then((hash) => {
-        User.create({ name, avatar, email, password: hash }).then((newUser) => {
-          res.status(201).send({ data: newUser });
+  User.findOne({ email })
+    .then((user) => {
+      if (user) {
+        return res
+          .status(CONFLICT)
+          .send({ message: "A user with that email already exists" });
+      }
+      return bcrypt
+        .hash(password, 10)
+        .then((hash) => {
+          User.create({ name, avatar, email, password: hash }).then(
+            (newUser) => {
+              return res.status(201).send({ data: newUser });
+            },
+          );
+        })
+        .catch((e) => {
+          console.error(e);
+          if (e.name === "DocumentNotFoundError") {
+            res.status(NOT_FOUND).send({ message: "User not found" });
+          } else if (e.name === "CastError") {
+            res.status(BAD_REQUEST).send({ message: "Invalid User ID" });
+          } else {
+            res
+              .status(DEFAULT_ERROR)
+              .send({ message: "Error with createUser" });
+          }
         });
-      })
-      .catch((e) => {
-        console.error(e);
-        if (e.name === "DocumentNotFoundError") {
-          res.status(NOT_FOUND).send({ message: "User not found" });
-        } else if (e.name === "CastError") {
-          res.status(BAD_REQUEST).send({ message: "Invalid User ID" });
-        } else {
-          res.status(DEFAULT_ERROR).send({ message: "Error with createUser" });
-        }
-      });
-  });
+    })
+    .catch((e) => {
+      console.error(e);
+      res.status(DEFAULT_ERROR).send({ message: "Internal server error" });
+    });
 };
 
 const login = (req, res) => {
@@ -49,7 +63,9 @@ const login = (req, res) => {
       res.send({ token });
     })
     .catch(() => {
-      res.status(401).send({ message: "email or password are incorrect" });
+      res
+        .status(UNAUTHORIZED)
+        .send({ message: "email or password are incorrect" });
     });
 };
 
