@@ -26,17 +26,23 @@ const createUser = (req, res) => {
       }
       return bcrypt
         .hash(password, 10)
-        .then((hash) => {
+        .then((hash) =>
           User.create({ name, avatar, email, password: hash }).then((newUser) =>
-            res.status(201).send({ data: newUser }),
-          );
-        })
+            res
+              .status(201)
+              .send({
+                name: newUser.name,
+                avatar: newUser.avatar,
+                email: newUser.email,
+              }),
+          ),
+        )
         .catch((e) => {
           console.error(e);
-          if (e.name === "DocumentNotFoundError") {
-            res.status(NOT_FOUND).send({ message: "User not found" });
-          } else if (e.name === "CastError") {
-            res.status(BAD_REQUEST).send({ message: "Invalid User ID" });
+          if (e.name === "ValidationError") {
+            res.status(BAD_REQUEST).send({
+              message: `Error ${e.name} with the message ${e.message} has occurred while executing the code`,
+            });
           } else {
             res
               .status(DEFAULT_ERROR)
@@ -93,14 +99,17 @@ const updateProfile = (req, res) => {
     { name, avatar },
     { new: true, runValidators: true },
   )
+    .orFail()
     .then((user) => {
       res.status(200).send({ data: user });
     })
     .catch((e) => {
       if (e.name === "DocumentNotFoundError") {
         res.status(NOT_FOUND).send({ message: "User not found" });
-      } else if (e.name === "CastError") {
-        res.status(BAD_REQUEST).send({ message: "Invalid User ID" });
+      } else if (e.name === "ValidationError") {
+        res.status(BAD_REQUEST).send({
+          message: `Error ${e.name} with the message ${e.message} has occurred while executing the code`,
+        });
       } else {
         res.status(DEFAULT_ERROR).send({ message: "Error with getUser" });
       }
