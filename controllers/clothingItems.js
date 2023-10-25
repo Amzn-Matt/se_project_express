@@ -39,11 +39,7 @@ const deleteItems = (req, res) => {
   const { itemId } = req.params;
 
   ClothingItem.findById(itemId)
-    .orFail(() => {
-      const error = new Error("Document not found");
-      error.statusCode = NOT_FOUND;
-      throw error;
-    })
+    .orFail()
     .then((item) => {
       if (!item.owner.equals(req.user._id)) {
         return res
@@ -55,7 +51,7 @@ const deleteItems = (req, res) => {
     })
     .catch((e) => {
       console.error(e);
-      if (e.name === "DocumentNotFound") {
+      if (e.name === "DocumentNotFoundError") {
         res.status(NOT_FOUND).send({ message: "Item not found" });
       } else if (e.name === "CastError") {
         res.status(BAD_REQUEST).send({ message: "Item has an invalid ID" });
