@@ -10,7 +10,7 @@ const {
 
 router.post("/", authorize, createItem);
 
-router.get("/", authorize, getItems);
+router.get("/", getItems);
 
 router.delete("/:itemId", authorize, deleteItems);
 
