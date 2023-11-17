@@ -1,5 +1,5 @@
-const JWT_SECRET = "LGM";
+// const JWT_SECRET = "LGM";
 
-module.exports = {
-  JWT_SECRET,
-};
+// module.exports = {
+//   JWT_SECRET,
+// };
